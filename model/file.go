@@ -17,6 +17,8 @@ type Chunk struct {
 }
 
 type FileMetadata struct {
+	Model
+
 	Filename string `json:"filename"`
 	MD5      string `json:"md5"`
 	Status   int    `json:"status"` // 0 未合并 1 已存在 2 合并中

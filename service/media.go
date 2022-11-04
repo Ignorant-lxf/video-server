@@ -10,8 +10,8 @@ func (mediaSrv) Save(fileEntity *model.FileMetadata) error {
 	return db.Create(fileEntity).Error
 }
 
-func (s mediaSrv) Exist(md5 string) bool {
+func (s mediaSrv) Exist(md5 string, size uint64) bool {
 	var count int64
-	db.Model(&model.FileMetadata{}).Where("md5=?", md5).Count(&count)
+	db.Model(&model.FileMetadata{}).Where("md5= ? and size= ?", md5, size).Count(&count)
 	return count > 0
 }
