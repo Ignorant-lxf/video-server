@@ -6,12 +6,12 @@ var Media mediaSrv
 
 type mediaSrv struct{}
 
-func (mediaSrv) Save(fileEntity *model.FileEntity) error {
+func (mediaSrv) Save(fileEntity *model.FileMetadata) error {
 	return db.Create(fileEntity).Error
 }
 
 func (s mediaSrv) Exist(md5 string) bool {
 	var count int64
-	db.Model(&model.FileEntity{}).Where("md5=?", md5).Count(&count)
+	db.Model(&model.FileMetadata{}).Where("md5=?", md5).Count(&count)
 	return count > 0
 }

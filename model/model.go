@@ -13,5 +13,5 @@ type Model struct {
 }
 
 var Models = []any{
-	&FileEntity{},
+	&FileMetadata{},
 }

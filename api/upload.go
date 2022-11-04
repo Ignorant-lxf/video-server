@@ -19,7 +19,7 @@ import (
 const tempPath = "D:/video/"
 
 var (
-	fileRecord = make(map[string]*model.FileEntity)
+	fileRecord = make(map[string]*model.FileMetadata)
 	mediaLock  *sync.Mutex
 	chunkLock  *sync.Mutex
 	mergeLock  *sync.Mutex
@@ -48,7 +48,7 @@ func UploadMediaAction(c *THz.Context) {
 		return
 	}
 
-	entity := &model.FileEntity{
+	entity := &model.FileMetadata{
 		Filename: media.Filename,
 		MD5:      media.MD5,
 		Status:   0,
