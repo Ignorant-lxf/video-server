@@ -12,6 +12,7 @@ import (
 	"sync"
 	"video-server/api/result"
 	"video-server/model"
+	"video-server/service"
 	"video-server/util"
 )
 
@@ -35,9 +36,14 @@ func UploadMediaAction(c *THz.Context) {
 	}
 
 	mediaLock.Lock()
-	//todo 1.初始化map值操作 2.hash碰撞问题
+	//todo hash碰撞问题
 	if s, ok := fileRecord[media.MD5]; ok && s.Size == media.Size {
-		r.Set(-9, "请勿重复上传")
+		if fileRecord[media.MD5].Status == 1 {
+			r.Set(-9, "视频已经上传过了")
+		} else {
+			r.Set(-9, "进行中，请勿重复上传")
+		}
+
 		mediaLock.Unlock()
 		return
 	}
@@ -50,6 +56,11 @@ func UploadMediaAction(c *THz.Context) {
 	}
 	fileRecord[media.MD5] = entity
 	mediaLock.Unlock()
+
+	if service.Media.Exist(media.MD5) {
+		r.Set(-9, "视频已经上传过了")
+		return
+	}
 
 	filepath := fmt.Sprintf("%s%s", tempPath, media.MD5)
 	_ = os.Mkdir(filepath, 0777)
@@ -98,6 +109,7 @@ func UploadChunkAction(c *THz.Context) {
 	des, err := os.OpenFile(filepath, os.O_RDWR|os.O_CREATE, 0766)
 	defer des.Close()
 	chunkLock.Unlock()
+
 	if err != nil {
 		r.Set(-9, err.Error())
 		return
@@ -111,8 +123,8 @@ func UploadChunkAction(c *THz.Context) {
 }
 
 type Tmp struct {
-	ID    string `json:"id"`
-	Count int    `json:"count"`
+	ID    string `json:"id"`    // 文件ID
+	Count int    `json:"count"` // 切片总数
 }
 
 func MergeChunkAction(c *THz.Context) {
@@ -143,11 +155,12 @@ func MergeChunkAction(c *THz.Context) {
 	entity.Status = 2
 	mergeLock.Unlock()
 
-	des, _ := os.OpenFile(fmt.Sprintf("%s%s_all", tempPath, arg.ID), os.O_RDWR|os.O_CREATE, 0766)
-	defer des.Close()
+	filepath := fmt.Sprintf("%s%s_all", tempPath, arg.ID)
+	file, _ := os.OpenFile(filepath, os.O_RDWR|os.O_CREATE, 0766)
+	defer file.Close()
 
 	for i := 0; i < arg.Count; i++ {
-		indexFile, err := os.OpenFile(fmt.Sprintf("%s%s/%d", tempPath, arg.ID, i), os.O_RDWR, 0766)
+		indexFile, err := os.OpenFile(fmt.Sprintf("%s%s/%s_%d", tempPath, arg.ID, entity.Filename, i), os.O_RDWR, 0766)
 		if err != nil {
 			zap.L().Debug(err.Error())
 			r.Set(-9, "出现错误，请重新上传")
@@ -157,11 +170,19 @@ func MergeChunkAction(c *THz.Context) {
 
 		buf := new(bytes.Buffer)
 		_, _ = io.Copy(buf, indexFile)
-		_, _ = des.Write(buf.Bytes())
+		_, _ = file.Write(buf.Bytes())
 
 		indexFile.Close()
 	}
 
+	entity.Path = filepath
 	entity.Status = 1
+
+	if err := service.Media.Save(entity); err != nil {
+		r.Set(-9, err.Error())
+		entity.Status = 0
+		return
+	}
+
 	_ = os.RemoveAll(fmt.Sprintf("%s%s/", tempPath, arg.ID))
 }

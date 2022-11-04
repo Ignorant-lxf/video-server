@@ -19,6 +19,7 @@ type Chunk struct {
 type FileEntity struct {
 	Filename string `json:"filename"`
 	MD5      string `json:"md5"`
-	Status   int    `json:"status"` // 0 进行中 1 已存在
+	Status   int    `json:"status"` // 0 未合并 1 已存在 2 合并中
 	Size     uint64 `json:"size"`
+	Path     string `json:"path"` // 文件存储的路径
 }

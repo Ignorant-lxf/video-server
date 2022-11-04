@@ -8,12 +8,16 @@ import (
 	"os/signal"
 	"syscall"
 	"video-server/api"
+	"video-server/service"
 )
 
 func init() {
 	rogu.MustReplaceGlobals(rogu.DefaultZapConfig(rogu.DefaultZapEncoderConfig(),
 		[]string{"stdout"},
 		[]string{"stderr"}))
+
+	service.Init()
+	_ = service.AutoMigrate()
 }
 
 func main() {
