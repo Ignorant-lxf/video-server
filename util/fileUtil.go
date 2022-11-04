@@ -2,6 +2,7 @@ package util
 
 import (
 	"mime/multipart"
+	"os"
 	"strings"
 )
 
@@ -18,4 +19,12 @@ func GetFileType(file *multipart.FileHeader) string {
 	}
 
 	return filename[index+1:]
+}
+
+func FileExist(path string) bool {
+	stat, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+	return !stat.IsDir()
 }

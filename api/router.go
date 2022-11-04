@@ -23,6 +23,8 @@ func Router() *THz.THz {
 	{
 		upload := t.Group("/api/v1/upload")
 		upload.POST("/media", UploadMediaAction)
+		upload.POST("/chunk", UploadChunkAction)
+		upload.POST("/merge", MergeChunkAction)
 	}
 
 	return t
