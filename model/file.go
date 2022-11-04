@@ -15,3 +15,10 @@ type Chunk struct {
 	MD5     string                `json:"md5"`
 	File    *multipart.FileHeader `json:"file"`
 }
+
+type FileEntity struct {
+	Filename string `json:"filename"`
+	MD5      string `json:"md5"`
+	Status   int    `json:"status"` // 0 进行中 1 已存在
+	Size     uint64 `json:"size"`
+}

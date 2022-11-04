@@ -18,12 +18,11 @@ import (
 const tempPath = "D:/video/"
 
 var (
-	hashRecord = make(map[string]uint64)
+	fileRecord = make(map[string]*model.FileEntity)
 	mediaLock  *sync.Mutex
 	chunkLock  *sync.Mutex
+	mergeLock  *sync.Mutex
 )
-
-//todo 文件名和md5的对应保存?
 
 func UploadMediaAction(c *THz.Context) {
 	r := result.New[any]()
@@ -37,13 +36,19 @@ func UploadMediaAction(c *THz.Context) {
 
 	mediaLock.Lock()
 	//todo 1.初始化map值操作 2.hash碰撞问题
-	if s, ok := hashRecord[media.MD5]; ok && s == media.Size {
+	if s, ok := fileRecord[media.MD5]; ok && s.Size == media.Size {
 		r.Set(-9, "请勿重复上传")
 		mediaLock.Unlock()
 		return
 	}
 
-	hashRecord[media.MD5] = media.Size
+	entity := &model.FileEntity{
+		Filename: media.Filename,
+		MD5:      media.MD5,
+		Status:   0,
+		Size:     media.Size,
+	}
+	fileRecord[media.MD5] = entity
 	mediaLock.Unlock()
 
 	filepath := fmt.Sprintf("%s%s", tempPath, media.MD5)
@@ -62,6 +67,12 @@ func UploadChunkAction(c *THz.Context) {
 		return
 	}
 
+	entity := fileRecord[chunk.ID]
+	if entity == nil {
+		r.Set(-9, "切片对应的文件不存在")
+		return
+	}
+
 	hash := md5.New()
 	file, err := chunk.File.Open()
 	defer file.Close()
@@ -76,7 +87,7 @@ func UploadChunkAction(c *THz.Context) {
 		return
 	}
 
-	filepath := fmt.Sprintf("%s%s/%d", tempPath, chunk.ID, chunk.ChunkID)
+	filepath := fmt.Sprintf("%s%s/%s_%d", tempPath, chunk.ID, entity.Filename, chunk.ChunkID)
 
 	chunkLock.Lock()
 	if util.FileExist(filepath) {
@@ -113,7 +124,24 @@ func MergeChunkAction(c *THz.Context) {
 		r.BadRequest()
 		return
 	}
-	//todo 文件ID不存在 与重复 判断
+
+	entity := fileRecord[arg.ID]
+	if entity == nil {
+		r.Set(-9, "输入的文件不存在")
+		return
+	}
+
+	mergeLock.Lock()
+	switch entity.Status {
+	case 2:
+		r.Set(-9, "正在合并中，请勿重复操作")
+		return
+	case 1:
+		r.Set(-9, "文件早已存在")
+		return
+	}
+	entity.Status = 2
+	mergeLock.Unlock()
 
 	des, _ := os.OpenFile(fmt.Sprintf("%s%s_all", tempPath, arg.ID), os.O_RDWR|os.O_CREATE, 0766)
 	defer des.Close()
@@ -123,6 +151,7 @@ func MergeChunkAction(c *THz.Context) {
 		if err != nil {
 			zap.L().Debug(err.Error())
 			r.Set(-9, "出现错误，请重新上传")
+			entity.Status = 0
 			return
 		}
 
@@ -133,5 +162,6 @@ func MergeChunkAction(c *THz.Context) {
 		indexFile.Close()
 	}
 
+	entity.Status = 1
 	_ = os.RemoveAll(fmt.Sprintf("%s%s/", tempPath, arg.ID))
 }
