@@ -51,13 +51,13 @@ func UploadMediaAction(c *THz.Context) {
 	entity := &model.FileMetadata{
 		Filename: media.Filename,
 		MD5:      media.MD5,
-		Status:   0,
 		Size:     media.Size,
 	}
 	fileRecord[media.MD5] = entity
 	mediaLock.Unlock()
 
 	if service.Media.Exist(media.MD5, media.Size) {
+		entity.Status = 1
 		r.Set(-9, "视频已经上传过了")
 		return
 	}
