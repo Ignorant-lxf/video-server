@@ -18,3 +18,8 @@ Server for upload video
 **可能存在的问题：文件ID不存在 、重传或 计算的md5值比较错误。**
 
 **tip: 注意并发时操作的原子性**
+
+**参考文献**
+
+https://segmentfault.com/a/1190000040982815 ffmpeg使用
+https://www.ruanyifeng.com/blog/2020/01/ffmpeg.html 
