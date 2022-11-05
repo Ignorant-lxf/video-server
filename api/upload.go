@@ -36,7 +36,7 @@ func UploadMediaAction(c *THz.Context) {
 	}
 
 	mediaLock.Lock()
-	//todo hash碰撞问题
+
 	if s, ok := fileRecord[media.MD5]; ok && s.Size == media.Size {
 		if fileRecord[media.MD5].Status == 1 {
 			r.Set(-9, "视频已经上传过了")
@@ -54,6 +54,7 @@ func UploadMediaAction(c *THz.Context) {
 		Size:     media.Size,
 	}
 	fileRecord[media.MD5] = entity
+
 	mediaLock.Unlock()
 
 	if service.Media.Exist(media.MD5, media.Size) {
@@ -101,6 +102,7 @@ func UploadChunkAction(c *THz.Context) {
 	filepath := fmt.Sprintf("%s%s/%s_%d", tempPath, chunk.ID, entity.Filename, chunk.ChunkID)
 
 	chunkLock.Lock()
+
 	if util.FileExist(filepath) {
 		chunkLock.Unlock()
 		return // 重复切片 啥也不做
@@ -108,6 +110,7 @@ func UploadChunkAction(c *THz.Context) {
 
 	des, err := os.OpenFile(filepath, os.O_RDWR|os.O_CREATE, 0766)
 	defer des.Close()
+
 	chunkLock.Unlock()
 
 	if err != nil {
@@ -144,6 +147,7 @@ func MergeChunkAction(c *THz.Context) {
 	}
 
 	mergeLock.Lock()
+
 	switch entity.Status {
 	case 2:
 		r.Set(-9, "正在合并中，请勿重复操作")
@@ -153,6 +157,7 @@ func MergeChunkAction(c *THz.Context) {
 		return
 	}
 	entity.Status = 2
+
 	mergeLock.Unlock()
 
 	filepath := fmt.Sprintf("%s%s_all", tempPath, arg.ID)
@@ -172,7 +177,7 @@ func MergeChunkAction(c *THz.Context) {
 		_, _ = io.Copy(buf, indexFile)
 		_, _ = file.Write(buf.Bytes())
 
-		indexFile.Close()
+		_ = indexFile.Close()
 	}
 
 	entity.Path = filepath
