@@ -253,10 +253,8 @@ func CheckChunkAction(c *THz.Context) {
 		return
 	}
 
-	// filepath := fmt.Sprintf("%s%s/%s_%d", tempPath, chunk.ID, entity.Filename, chunk.ChunkID)
-	// 查找最后一个切片 todo 是否必要加检查锁
+	// todo 是否必要加检查锁  for 查找最后上传切片的索引
 	fileDir := fmt.Sprintf("%s%s/%s_%d", tempPath, media.MD5)
-	// ioutil.ReadDir()
 	dir, err := os.ReadDir(fileDir)
 	if err != nil {
 		r.Set(-9, "abnormal environment")
