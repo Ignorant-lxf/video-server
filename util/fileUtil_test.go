@@ -37,22 +37,3 @@ func TestGetImage(t *testing.T) {
 	path := "D:/video/in1_all.mp4"
 	GetImage(path)
 }
-
-func TestDefer(t *testing.T) {
-	i := func() (result int) {
-		defer func() {
-			result++
-		}()
-		return 2
-	}()
-	fmt.Println(i)
-
-	r := func() int {
-		r := 5
-		defer func() {
-			r++
-		}()
-		return r
-	}()
-	fmt.Println(r)
-}
