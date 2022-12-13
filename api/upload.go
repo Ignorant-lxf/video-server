@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -261,12 +262,17 @@ func CheckChunkAction(c *THz.Context) {
 		return
 	}
 
-	chunkIdx := 1
+	chunks := make([]string, 0, len(dir))
 	for _, f := range dir {
+		chunks = append(chunks, f.Name())
+	}
+
+	sort.Strings(chunks)
+
+	chunkIdx := 1
+	for i := 0; i < len(chunks); i++ {
 		idx := strconv.Itoa(chunkIdx)
-		name := f.Name()
-		// todo  查找存在优化空间
-		if !(strings.HasPrefix(name, media.Filename) && strings.HasSuffix(name, idx)) {
+		if !strings.HasSuffix(chunks[i], idx) {
 			break
 		}
 
