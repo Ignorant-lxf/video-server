@@ -25,6 +25,7 @@ func Router() *THz.THz {
 		upload.POST("/media", UploadMediaAction)
 		upload.POST("/chunk", UploadChunkAction)
 		upload.POST("/merge", MergeChunkAction)
+		upload.POST("/check", CheckChunkAction)
 	}
 
 	return t

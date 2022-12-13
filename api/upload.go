@@ -5,11 +5,15 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"strconv"
+	"strings"
+	"sync"
+
 	"go.uber.org/zap"
 	"go.x2ox.com/THz"
-	"io"
-	"os"
-	"sync"
 	"video-server/api/result"
 	"video-server/model"
 	"video-server/service"
@@ -38,13 +42,13 @@ func UploadMediaAction(c *THz.Context) {
 	mediaLock.Lock()
 
 	if s, ok := fileRecord[media.MD5]; ok && s.Size == media.Size {
+		mediaLock.Unlock()
+
 		if fileRecord[media.MD5].Status == 1 {
 			r.Set(-9, "视频已经上传过了")
 		} else {
 			r.Set(-9, "进行中，请勿重复上传")
 		}
-
-		mediaLock.Unlock()
 		return
 	}
 
@@ -190,4 +194,88 @@ func MergeChunkAction(c *THz.Context) {
 	}
 
 	_ = os.RemoveAll(fmt.Sprintf("%s%s/", tempPath, arg.ID))
+
+	go func() {
+		// 需要知道视频的格式
+		videoHandler(filepath)
+	}()
+}
+
+// todo 1.知道媒体类型(通过content-type拿)
+//
+//	2.合成对应格式的视频(ffmpeg功能)
+//	3.调整视频比例
+//	4.视频帧存储
+func videoHandler(filepath string) {
+	file, _ := os.OpenFile(filepath, os.O_RDWR, 0766)
+	buffer := make([]byte, 512) // used to recognize content type
+
+	_, _ = file.Read(buffer)
+
+	contentType := http.DetectContentType(buffer)
+
+	if contentType != "" {
+
+	}
+}
+
+// 1.存在且上传成功
+// 2.存在且没上传完
+// 3.不存在
+
+// CheckChunkAction stop and new upload
+func CheckChunkAction(c *THz.Context) {
+	r := result.New[any]()
+	defer c.JSON(r)
+
+	var media model.Media
+	if err := c.Bind(&media); err != nil {
+		r.BadRequest()
+		return
+	}
+
+	var (
+		fileMeta *model.FileMetadata
+		exist    bool
+	)
+
+	mediaLock.Lock()
+	fileMeta, exist = fileRecord[media.MD5]
+	mediaLock.Unlock()
+
+	if !exist {
+		r.Set(-1, "file is not exist,start upload please")
+		return
+	}
+
+	if fileMeta.Status == 1 {
+		r.Set(200, "success upload")
+		return
+	}
+
+	// filepath := fmt.Sprintf("%s%s/%s_%d", tempPath, chunk.ID, entity.Filename, chunk.ChunkID)
+	// 查找最后一个切片 todo 是否必要加检查锁
+	fileDir := fmt.Sprintf("%s%s/%s_%d", tempPath, media.MD5)
+	// ioutil.ReadDir()
+	dir, err := os.ReadDir(fileDir)
+	if err != nil {
+		r.Set(-9, "abnormal environment")
+		return
+	}
+
+	chunkIdx := 1
+	for _, f := range dir {
+		idx := strconv.Itoa(chunkIdx)
+		name := f.Name()
+		// todo  查找存在优化空间
+		if !(strings.HasPrefix(name, media.Filename) && strings.HasSuffix(name, idx)) {
+			break
+		}
+
+		chunkIdx++
+	}
+
+	r.Data = &struct {
+		Index int `json:"index"`
+	}{Index: chunkIdx}
 }

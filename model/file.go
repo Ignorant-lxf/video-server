@@ -9,10 +9,10 @@ type Media struct {
 }
 
 type Chunk struct {
-	ID      string                `json:"id"`       // 文件标识
+	ID      string                `json:"id"`       // 文件标识 即整个大文件的hash值
 	ChunkID uint64                `json:"chunk_id"` // 切片ID
 	Size    uint64                `json:"size"`     // 切片大小
-	MD5     string                `json:"md5"`
+	MD5     string                `json:"md5"`      // 每个切片单独的hash值
 	File    *multipart.FileHeader `json:"file"`
 }
 
